@@ -1,11 +1,12 @@
-import os
-
 import streamlit as st
 from langchain.llms.openai import OpenAI
 from llama_index import Document, VectorStoreIndex, get_response_synthesizer
 from llama_index.indices.postprocessor import (SentenceEmbeddingOptimizer,
                                                SimilarityPostprocessor)
 
+from dotenv import load_dotenv
+
+load_dotenv('.env')
 
 ### LOAD DATA ###
 synthetic_user_file = open("./data/summary-example/synthetic-user.txt", "r")
