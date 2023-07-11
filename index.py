@@ -7,28 +7,9 @@ from llama_index.indices.postprocessor import (SentenceEmbeddingOptimizer,
 from dotenv import load_dotenv
 
 from llama_parameters import summarization_strategies
+from data_processing import extract_json_data_to_index
 
 load_dotenv('.env')
-
-### LOAD DATA ###
-synthetic_user_file = open("./data/summary-example/synthetic-user.txt", "r")
-synthetic_user = synthetic_user_file.read()
-synthetic_user_file.close()
-
-problem_file = open("./data/summary-example/problems.txt", "r")
-problem = problem_file.read()
-problem_file.close()
-
-solution_file = open("./data/summary-example/solution.txt", "r")
-solution = solution_file.read()
-solution_file.close()
-
-original_user_interviews = []
-for i in range(1, 10):
-    user_interview_file = open("./data/summary-example/user-interview-" + str(i) + ".txt", "r")
-    user_interview = user_interview_file.read()
-    user_interview_file.close()
-    original_user_interviews.append(user_interview)
 
 # Define a simple Streamlit app layout
 st.title("Synthetic Users Report Testing Playground")
@@ -50,23 +31,34 @@ if st.button("Submit"):
     elif json_file is None:
         st.error(f"Please provide the JSON file.")
     else:
-        # response_synthesizer = get_response_synthesizer(
-        #     response_mode=summarization_strategy,
-        # )
-        # # assemble query engine
-        # documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in original_user_interviews]
-        # index = VectorStoreIndex.from_documents(documents=documents)
+        data = extract_json_data_to_index(json_file)
+        problems = data["Problems"]
+        solution = data["Solution"]
+        user_interviews = data["User Interviews"]
+
+        st.text("Generating prompt embeddings for " + str(len(user_interviews)) + " user interviews...")
         
-        # query_engine = index.as_query_engine(
-        # similarity_top_k=3,
-        #     response_synthesizer=response_synthesizer,
-        #     node_postprocessors=[
-        #         SimilarityPostprocessor(similarity_cutoff=0.7),
-        #         SentenceEmbeddingOptimizer(percentile_cutoff=0.5)
-        #     ]
-        # )
+        prompt = prompt.format(problems=problems, solution=solution)
+        st.text("Prompt:\n" + prompt)
         
-        # st.success(query_engine.query(prompt_embeddings))
-        problems = ",".join(["one problem", "two problems"])
-        solution = "one solution"
-        st.success(prompt.format(problems=problems, solution=solution))
+        st.text("Prompting with summarization strategy " + summarization_strategy + " ...")
+        
+        documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in user_interviews]
+        index = VectorStoreIndex.from_documents(documents=documents)
+        
+        response_synthesizer = get_response_synthesizer(
+            response_mode=summarization_strategy,
+        )
+
+        # assemble query engine
+        query_engine = index.as_query_engine(
+        similarity_top_k=3,
+            response_synthesizer=response_synthesizer,
+            node_postprocessors=[
+                SimilarityPostprocessor(similarity_cutoff=0.7),
+                SentenceEmbeddingOptimizer(percentile_cutoff=0.5)
+            ]
+        )
+        
+        st.success(query_engine.query(prompt))
+        
