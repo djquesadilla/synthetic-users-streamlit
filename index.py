@@ -30,25 +30,13 @@ for i in range(1, 10):
     user_interview_file.close()
     original_user_interviews.append(user_interview)
 
-prompt_file = open("./data/summary-example/prompt.txt", "r")
-original_prompt = prompt_file.read()
-prompt_file.close()
-
-# PROMPT DEFINED
-prompt_embeddings_file = open("./data/summary-example/prompt-embeddings.txt", "r")
-prompt_embeddings = prompt_embeddings_file.read()
-prompt_embeddings_file.close()
-
-prompt_embeddings = prompt_embeddings.format(problem=problem, solution=solution)
-
-
 # Define a simple Streamlit app layout
 st.title("Synthetic Users Report Testing Playground")
-st.file_uploader('File uploader')
+json_file = st.file_uploader('File uploader')
 summarization_strategy = st.selectbox(options=summarization_strategies, label="Select summarization strategy", index=0)
-st.text_area(
+prompt = st.text_area(
     label="Write the prompt",
-    value="Please summarize the user interviews for the scenario with the following problem and solution:\n- {problem}\n- {solution}",
+    value="Please summarize the user interviews for the scenario with the following problem and solution:\n- {problems}\n- {solution}",
     height=200,
     max_chars=1000
 )
@@ -57,21 +45,28 @@ st.text_area(
 if st.button("Submit"):
     if not summarization_strategy.strip():
         st.error(f"Please provide the summarization strategy.")
+    elif not prompt.strip():
+        st.error(f"Please provide the prompt.")
+    elif json_file is None:
+        st.error(f"Please provide the JSON file.")
     else:
-        response_synthesizer = get_response_synthesizer(
-            response_mode=summarization_strategy,
-        )
-        # assemble query engine
-        documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in original_user_interviews]
-        index = VectorStoreIndex.from_documents(documents=documents)
+        # response_synthesizer = get_response_synthesizer(
+        #     response_mode=summarization_strategy,
+        # )
+        # # assemble query engine
+        # documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in original_user_interviews]
+        # index = VectorStoreIndex.from_documents(documents=documents)
         
-        query_engine = index.as_query_engine(
-        similarity_top_k=3,
-            response_synthesizer=response_synthesizer,
-            node_postprocessors=[
-                SimilarityPostprocessor(similarity_cutoff=0.7),
-                SentenceEmbeddingOptimizer(percentile_cutoff=0.5)
-            ]
-        )
+        # query_engine = index.as_query_engine(
+        # similarity_top_k=3,
+        #     response_synthesizer=response_synthesizer,
+        #     node_postprocessors=[
+        #         SimilarityPostprocessor(similarity_cutoff=0.7),
+        #         SentenceEmbeddingOptimizer(percentile_cutoff=0.5)
+        #     ]
+        # )
         
-        st.success(query_engine.query(prompt_embeddings))
+        # st.success(query_engine.query(prompt_embeddings))
+        problems = ",".join(["one problem", "two problems"])
+        solution = "one solution"
+        st.success(prompt.format(problems=problems, solution=solution))
