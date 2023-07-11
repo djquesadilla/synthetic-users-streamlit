@@ -6,6 +6,8 @@ from llama_index.indices.postprocessor import (SentenceEmbeddingOptimizer,
 
 from dotenv import load_dotenv
 
+from llama_parameters import summarization_strategies
+
 load_dotenv('.env')
 
 ### LOAD DATA ###
@@ -39,27 +41,25 @@ prompt_embeddings_file.close()
 
 prompt_embeddings = prompt_embeddings.format(problem=problem, solution=solution)
 
-# Define a simple Streamlit app
-st.title("Ask Synthetic Users to Report")
-query = st.selectbox(options=[
-    "refine",
-    "compact",
-    "tree_summarize",
-    "simple_summarize",
-    "generation",
-    "no_text",
-    "accumulate",
-    "compact",
-    "compact_accumulate"
-    ], label="Select your Summarization strategy", index=0)
+
+# Define a simple Streamlit app layout
+st.title("Synthetic Users Report Testing Playground")
+st.file_uploader('File uploader')
+summarization_strategy = st.selectbox(options=summarization_strategies, label="Select summarization strategy", index=0)
+st.text_area(
+    label="Write the prompt",
+    value="Please summarize the user interviews for the scenario with the following problem and solution:\n- {problem}\n- {solution}",
+    height=200,
+    max_chars=1000
+)
 
 # If the 'Submit' button is clicked
 if st.button("Submit"):
-    if not query.strip():
-        st.error(f"Please provide the search query.")
+    if not summarization_strategy.strip():
+        st.error(f"Please provide the summarization strategy.")
     else:
         response_synthesizer = get_response_synthesizer(
-            response_mode=query,
+            response_mode=summarization_strategy,
         )
         # assemble query engine
         documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in original_user_interviews]
