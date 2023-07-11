@@ -1,6 +1,9 @@
 import pandas as pd
 import streamlit as st
 from langchain.llms.openai import OpenAI
+from llama_index import Document, VectorStoreIndex, get_response_synthesizer
+from llama_index.indices.postprocessor import (SentenceEmbeddingOptimizer,
+                                               SimilarityPostprocessor)
 
 
 def extract_json_data_to_index(json_file):
@@ -25,3 +28,7 @@ def extract_json_data_to_index(json_file):
             result_dict["User Interviews"].append("\n".join([data[f"Question {j}"] for j in range(1, 11)]))
         
         return result_dict
+    
+def index_user_interviews(data) -> VectorStoreIndex:
+    documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in data["User Interviews"]]
+    index = VectorStoreIndex.from_documents(documents=documents)

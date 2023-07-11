@@ -7,7 +7,7 @@ from llama_index.indices.postprocessor import (SentenceEmbeddingOptimizer,
 from dotenv import load_dotenv
 
 from llama_parameters import summarization_strategies
-from data_processing import extract_json_data_to_index
+from data_processing import extract_json_data_to_index, index_user_interviews
 
 load_dotenv('.env')
 
@@ -19,7 +19,7 @@ prompt = st.text_area(
     label="Write the prompt",
     value="Please summarize the user interviews for the scenario with the following problem and solution:\n- {problems}\n- {solution}",
     height=200,
-    max_chars=1000
+    max_chars=4000
 )
 
 # If the 'Submit' button is clicked
@@ -32,19 +32,13 @@ if st.button("Submit"):
         st.error(f"Please provide the JSON file.")
     else:
         data = extract_json_data_to_index(json_file)
-        problems = data["Problems"]
-        solution = data["Solution"]
-        user_interviews = data["User Interviews"]
-
-        st.text("Generating prompt embeddings for " + str(len(user_interviews)) + " user interviews...")
+        st.text("Generating prompt embeddings for " + str(len(data["User Interviews"])) + " user interviews...")
         
-        prompt = prompt.format(problems=problems, solution=solution)
+        prompt = prompt.format(problems=data["Problems"], solution=data["Solution"])
         st.text("Prompt:\n" + prompt)
-        
         st.text("Prompting with summarization strategy " + summarization_strategy + " ...")
         
-        documents = [Document(text=user_interview, metadata={"type": "user_interview"}) for user_interview in user_interviews]
-        index = VectorStoreIndex.from_documents(documents=documents)
+        index = index_user_interviews(data)
         
         response_synthesizer = get_response_synthesizer(
             response_mode=summarization_strategy,
